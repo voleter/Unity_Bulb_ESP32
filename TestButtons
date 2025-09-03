@@ -1,0 +1,9 @@
+using UnityEngine;
+
+public class TestButtons : MonoBehaviour
+{
+    public ESPBridgeController esp;
+    public void BtnOn() => esp?.TurnOn();
+    public void BtnOff() => esp?.TurnOff();
+    public void BtnOrange() => esp?.SetHSB(30f, 100f, 85);
+}
