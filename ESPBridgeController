@@ -1,0 +1,45 @@
+using System;
+using System.Collections;
+
+using System.Text;
+using UnityEngine;
+using UnityEngine.Networking;
+
+public class ESPBridgeController : MonoBehaviour
+{
+    [Header("ESP32 Bridge")]
+    public string bridgeUrl = "http://192.168.8.107"; // your ESP32 IP
+    public string apiKey = "a7b4f9e2d6c18a3f5b9d7e6c4a1b02d8";
+
+    IEnumerator Post(string path, string json = "{}")
+    {
+        // Also append api_key in URL to survive any header issues
+        string url = $"{bridgeUrl}{path}{(path.Contains("?") ? "&" : "?")}api_key={apiKey}";
+
+        var req = new UnityWebRequest(url, UnityWebRequest.kHttpVerbPOST);
+        byte[] body = Encoding.UTF8.GetBytes(json);
+        req.uploadHandler = new UploadHandlerRaw(body);
+        req.downloadHandler = new DownloadHandlerBuffer();
+        req.SetRequestHeader("Content-Type", "application/json");
+        req.SetRequestHeader("X-API-Key", apiKey);
+
+        yield return req.SendWebRequest();
+
+        if (req.result != UnityWebRequest.Result.Success)
+            Debug.LogError($"{path}: {req.responseCode} {req.error} {req.downloadHandler.text}");
+        else
+            Debug.Log($"{path}: {req.responseCode} {req.downloadHandler.text}");
+    }
+
+    public void TurnOn() => StartCoroutine(Post("/on"));
+    public void TurnOff() => StartCoroutine(Post("/off"));
+    // h:0..360, s:0..100, b:1..100
+    public void SetHSB(float h, float s, int b)
+        => StartCoroutine(Post($"/set?h={(int)h}&s={(int)s}&b={Mathf.Clamp(b, 1, 100)}", "{}"));
+
+    public void SetFromUnityColor(Color c, int brightness = 80)
+    {
+        Color.RGBToHSV(c, out float h, out float s, out float v);
+        SetHSB(h * 360f, s * 100f, Mathf.Clamp(Mathf.RoundToInt(v * 100f), 1, 100));
+    }
+}
